@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Royal Convoy — Map Editor</title>
+<style>
+  :root {
+    --parchment: #F5EDD6;
+    --parchment-dark: #E8D8B0;
+    --ink: #2C1A06;
+    --ink-light: #5C3D0A;
+    --gold: #C8A030;
+    --gold-deep: #8A6010;
+    --blue: #4A7AAA;
+    --red: #AA4A4A;
+    --green: #3A8A4A;
+    --stone: #E0DDD8;
+    --forest: #6B8C5A;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #2A1804;
+    font-family: Georgia, serif;
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 16px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  /* ── LEFT PANEL ── */
+  #left-panel {
+    width: 200px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .panel-box {
+    background: var(--parchment);
+    border: 1.5px solid var(--gold-deep);
+    border-radius: 6px;
+    padding: 12px;
+  }
+
+  .panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gold-deep);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--parchment-dark);
+  }
+
+  .tool-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 7px 10px;
+    margin-bottom: 5px;
+    border: 1.5px solid var(--gold-deep);
+    border-radius: 4px;
+    background: var(--parchment-dark);
+    color: var(--ink-light);
+    font-family: Georgia, serif;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.1s;
+  }
+  .tool-btn:last-child { margin-bottom: 0; }
+  .tool-btn:hover { background: var(--parchment); }
+  .tool-btn.active {
+    background: var(--ink-light);
+    color: var(--parchment);
+    border-color: var(--ink);
+  }
+
+  .swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    border: 1px solid rgba(0,0,0,0.2);
+    flex-shrink: 0;
+  }
+
+  .action-btn {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 5px;
+    border: 1.5px solid var(--gold-deep);
+    border-radius: 4px;
+    background: var(--parchment-dark);
+    color: var(--ink-light);
+    font-family: Georgia, serif;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.1s;
+  }
+  .action-btn:hover { background: var(--parchment); }
+  .action-btn.primary {
+    background: var(--ink-light);
+    color: var(--parchment);
+    border-color: var(--ink);
+  }
+  .action-btn.primary:hover { background: var(--ink); }
+  .action-btn:last-child { margin-bottom: 0; }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--ink-light);
+    margin-bottom: 4px;
+  }
+
+  /* ── MAIN BOARD ── */
+  #board-wrap {
+    flex: 1;
+    background: var(--parchment);
+    border: 1.5px solid var(--gold-deep);
+    border-radius: 6px;
+    padding: 12px;
+  }
+
+  #board-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  #board-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+    letter-spacing: 1px;
+  }
+
+  #board-sub {
+    font-size: 10px;
+    color: var(--gold-deep);
+    font-style: italic;
+  }
+
+  #col-headers {
+    display: grid;
+    grid-template-columns: 24px repeat(5, 1fr);
+    gap: 2px;
+    margin-bottom: 2px;
+  }
+
+  .col-hdr {
+    text-align: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--gold-deep);
+    padding: 2px 0;
+  }
+
+  #grid-wrap {
+    display: flex;
+    gap: 2px;
+  }
+
+  #row-hdrs {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 24px;
+    flex-shrink: 0;
+  }
+
+  .row-hdr {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    color: var(--gold-deep);
+    font-weight: 700;
+    flex: 1;
+  }
+
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2px;
+    flex: 1;
+  }
+
+  .cell {
+    aspect-ratio: 1.4/1;
+    border-radius: 3px;
+    border: 1.5px solid;
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: 700;
+    transition: filter 0.1s;
+    user-select: none;
+  }
+  .cell:hover { filter: brightness(1.15); }
+  .cell:active { filter: brightness(0.9); }
+
+  /* Cell type styles */
+  .cell[data-type="blank"] {
+    background: #4A5A3A;
+    border-color: #3A4A2A;
+  }
+  .cell[data-type="blank"]::after {
+    content: '🌲';
+    font-size: 10px;
+    opacity: 0.5;
+  }
+  .cell[data-type="shared"] {
+    background: #D9C99A;
+    border-color: #C4A050;
+    color: #8A6030;
+  }
+  .cell[data-type="p1"] {
+    background: #D8E8F8;
+    border-color: #4A7AAA;
+    color: #2A5A8A;
+  }
+  .cell[data-type="p2"] {
+    background: #F8D8D8;
+    border-color: #AA4A4A;
+    color: #8A2A2A;
+  }
+  .cell[data-type="castle"] {
+    background: #E0DDD8;
+    border-color: #8A8078;
+    color: #5A5048;
+  }
+  .cell[data-type="castle"]::after { content: '🏰'; font-size: 12px; }
+  .cell[data-type="gold"] {
+    background: #D9C99A;
+    border-color: #C4A050;
+  }
+  .cell[data-type="gold"]::after { content: '💰'; font-size: 12px; }
+  .cell[data-type="reroll"] {
+    background: #D9C99A;
+    border-color: #C4A050;
+  }
+  .cell[data-type="reroll"]::after { content: '🎲'; font-size: 12px; }
+  .cell[data-type="p1start"] {
+    background: #D8E8F8;
+    border-color: #4A7AAA;
+    color: #2A5A8A;
+    font-size: 7px;
+  }
+  .cell[data-type="p1start"]::after { content: 'P1\AStart'; white-space: pre; text-align: center; }
+  .cell[data-type="p2start"] {
+    background: #F8D8D8;
+    border-color: #AA4A4A;
+    color: #8A2A2A;
+    font-size: 7px;
+  }
+  .cell[data-type="p2start"]::after { content: 'P2\AStart'; white-space: pre; text-align: center; }
+  .cell[data-type="p1finish"] {
+    background: #D8E8F8;
+    border-color: #4A7AAA;
+    color: #2A5A8A;
+    font-size: 7px;
+  }
+  .cell[data-type="p1finish"]::after { content: 'P1\AFinish\A🎪'; white-space: pre; text-align: center; }
+  .cell[data-type="p2finish"] {
+    background: #F8D8D8;
+    border-color: #AA4A4A;
+    color: #8A2A2A;
+    font-size: 7px;
+  }
+  .cell[data-type="p2finish"]::after { content: 'P2\AFinish\A🎪'; white-space: pre; text-align: center; }
+
+  /* ── OUTPUT PANEL ── */
+  #output-box {
+    background: #1A0E04;
+    border: 1.5px solid var(--gold-deep);
+    border-radius: 4px;
+    padding: 10px;
+    font-family: monospace;
+    font-size: 9px;
+    color: #A0C880;
+    max-height: 180px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin-top: 8px;
+  }
+
+  #stats-bar {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .stat-pill {
+    background: var(--parchment-dark);
+    border: 1px solid var(--gold-deep);
+    border-radius: 10px;
+    padding: 2px 8px;
+    font-size: 9px;
+    color: var(--ink-light);
+    font-weight: 700;
+  }
+</style>
+</head>
+<body>
+
+<!-- LEFT PANEL -->
+<div id="left-panel">
+
+  <div class="panel-box">
+    <div class="panel-title">🖌 Paint Tool</div>
+    <button class="tool-btn active" id="tool-blank" onclick="setTool('blank')">
+      <div class="swatch" style="background:#4A5A3A;border-color:#3A4A2A"></div> Forest (blank)
+    </button>
+    <button class="tool-btn" id="tool-shared" onclick="setTool('shared')">
+      <div class="swatch" style="background:#D9C99A;border-color:#C4A050"></div> Shared Square
+    </button>
+    <button class="tool-btn" id="tool-p1" onclick="setTool('p1')">
+      <div class="swatch" style="background:#D8E8F8;border-color:#4A7AAA"></div> P1 Private
+    </button>
+    <button class="tool-btn" id="tool-p2" onclick="setTool('p2')">
+      <div class="swatch" style="background:#F8D8D8;border-color:#AA4A4A"></div> P2 Private
+    </button>
+    <button class="tool-btn" id="tool-castle" onclick="setTool('castle')">
+      <div class="swatch" style="background:#E0DDD8;border-color:#8A8078"></div> Castle 🏰
+    </button>
+    <button class="tool-btn" id="tool-gold" onclick="setTool('gold')">
+      <div class="swatch" style="background:#D9C99A;border-color:#C4A050"></div> Gold Coin 💰
+    </button>
+    <button class="tool-btn" id="tool-reroll" onclick="setTool('reroll')">
+      <div class="swatch" style="background:#D9C99A;border-color:#C4A050"></div> Roll Again 🎲
+    </button>
+    <button class="tool-btn" id="tool-p1start" onclick="setTool('p1start')">
+      <div class="swatch" style="background:#D8E8F8;border-color:#4A7AAA"></div> P1 Start
+    </button>
+    <button class="tool-btn" id="tool-p2start" onclick="setTool('p2start')">
+      <div class="swatch" style="background:#F8D8D8;border-color:#AA4A4A"></div> P2 Start
+    </button>
+    <button class="tool-btn" id="tool-p1finish" onclick="setTool('p1finish')">
+      <div class="swatch" style="background:#D8E8F8;border-color:#4A7AAA"></div> P1 Finish 🎪
+    </button>
+    <button class="tool-btn" id="tool-p2finish" onclick="setTool('p2finish')">
+      <div class="swatch" style="background:#F8D8D8;border-color:#AA4A4A"></div> P2 Finish 🎪
+    </button>
+  </div>
+
+  <div class="panel-box">
+    <div class="panel-title">⚙ Actions</div>
+    <button class="action-btn" onclick="loadDefault()">Load Default Map</button>
+    <button class="action-btn" onclick="clearAll()">Clear All</button>
+    <button class="action-btn" onclick="fillAllShared()">Fill All Shared</button>
+    <button class="action-btn primary" onclick="generateCode()">Generate Code ▶</button>
+  </div>
+
+  <div class="panel-box">
+    <div class="panel-title">📖 Legend</div>
+    <div class="legend-item"><div class="swatch" style="background:#4A5A3A;border-color:#3A4A2A"></div>Forest — impassable</div>
+    <div class="legend-item"><div class="swatch" style="background:#D9C99A;border-color:#C4A050"></div>Shared — both players</div>
+    <div class="legend-item"><div class="swatch" style="background:#D8E8F8;border-color:#4A7AAA"></div>P1 Private (blue)</div>
+    <div class="legend-item"><div class="swatch" style="background:#F8D8D8;border-color:#AA4A4A"></div>P2 Private (red)</div>
+    <div class="legend-item"><div class="swatch" style="background:#E0DDD8;border-color:#8A8078"></div>Castle</div>
+    <div class="legend-item"><div class="swatch" style="background:#D9C99A;border-color:#C4A050"></div>Gold / Reroll</div>
+  </div>
+
+</div>
+
+<!-- MAIN BOARD -->
+<div id="board-wrap">
+  <div id="board-header">
+    <div>
+      <div id="board-title">⚔ Royal Convoy — Map Editor</div>
+      <div id="board-sub">Click to paint · Click and drag to paint multiple squares</div>
+    </div>
+    <div id="stats-bar">
+      <div class="stat-pill" id="stat-shared">Shared: 0</div>
+      <div class="stat-pill" id="stat-p1">P1 Private: 0</div>
+      <div class="stat-pill" id="stat-p2">P2 Private: 0</div>
+      <div class="stat-pill" id="stat-special">Special: 0</div>
+    </div>
+  </div>
+
+  <div id="col-headers">
+    <div></div>
+    <div class="col-hdr">A</div>
+    <div class="col-hdr">B</div>
+    <div class="col-hdr">C</div>
+    <div class="col-hdr">D</div>
+    <div class="col-hdr">E</div>
+  </div>
+
+  <div id="grid-wrap">
+    <div id="row-hdrs"></div>
+    <div id="grid"></div>
+  </div>
+
+  <div id="output-box" style="display:none"></div>
+</div>
+
+<script>
+const COLS = 5, ROWS = 16;
+const COL_LETTERS = ['A','B','C','D','E'];
+let grid = []; // 'blank' | 'shared' | 'p1' | 'p2' | 'castle' | 'gold' | 'reroll' | 'p1start' | 'p2start' | 'p1finish' | 'p2finish'
+let currentTool = 'blank';
+let isPainting = false;
+
+function ix(col, row) { return (row - 1) * COLS + (col - 1); }
+function coord(i) {
+  const col = (i % COLS) + 1;
+  const row = Math.floor(i / COLS) + 1;
+  return COL_LETTERS[col-1] + row;
+}
+
+function setTool(tool) {
+  currentTool = tool;
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tool-' + tool).classList.add('active');
+}
+
+function paintCell(i) {
+  grid[i] = currentTool;
+  renderCell(i);
+  updateStats();
+}
+
+function renderCell(i) {
+  const el = document.getElementById('c' + i);
+  if (!el) return;
+  el.setAttribute('data-type', grid[i]);
+  // Show coordinate label for playable shared squares only
+  el.textContent = '';
+  if (grid[i] === 'shared') {
+    el.textContent = coord(i);
+  }
+}
+
+function buildGrid() {
+  const gridEl = document.getElementById('grid');
+  const rowEl = document.getElementById('row-hdrs');
+  gridEl.innerHTML = '';
+  rowEl.innerHTML = '';
+
+  for (let r = 1; r <= ROWS; r++) {
+    const rh = document.createElement('div');
+    rh.className = 'row-hdr';
+    rh.textContent = r;
+    rowEl.appendChild(rh);
+  }
+
+  for (let i = 0; i < ROWS * COLS; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.id = 'c' + i;
+    cell.setAttribute('data-type', grid[i]);
+
+    cell.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      isPainting = true;
+      paintCell(i);
+    });
+    cell.addEventListener('mouseover', function() {
+      if (isPainting) paintCell(i);
+    });
+    cell.addEventListener('touchstart', function(e) {
+      e.preventDefault();
+      isPainting = true;
+      paintCell(i);
+    }, {passive: false});
+    cell.addEventListener('touchmove', function(e) {
+      e.preventDefault();
+      const touch = e.touches[0];
+      const el = document.elementFromPoint(touch.clientX, touch.clientY);
+      if (el && el.id && el.id.startsWith('c')) {
+        const idx = parseInt(el.id.slice(1));
+        if (!isNaN(idx)) paintCell(idx);
+      }
+    }, {passive: false});
+
+    gridEl.appendChild(cell);
+  }
+
+  document.addEventListener('mouseup', function() { isPainting = false; });
+  document.addEventListener('touchend', function() { isPainting = false; });
+}
+
+function updateStats() {
+  let shared=0, p1=0, p2=0, special=0;
+  grid.forEach(function(t) {
+    if (t==='shared') shared++;
+    else if (t==='p1'||t==='p1start'||t==='p1finish') p1++;
+    else if (t==='p2'||t==='p2start'||t==='p2finish') p2++;
+    else if (t==='castle'||t==='gold'||t==='reroll') special++;
+  });
+  document.getElementById('stat-shared').textContent = 'Shared: ' + shared;
+  document.getElementById('stat-p1').textContent = 'P1 Private: ' + p1;
+  document.getElementById('stat-p2').textContent = 'P2 Private: ' + p2;
+  document.getElementById('stat-special').textContent = 'Special: ' + special;
+}
+
+function clearAll() {
+  grid = Array(ROWS * COLS).fill('blank');
+  for (let i = 0; i < ROWS * COLS; i++) renderCell(i);
+  updateStats();
+}
+
+function fillAllShared() {
+  grid = grid.map(function(t) { return t === 'blank' ? 'shared' : t; });
+  for (let i = 0; i < ROWS * COLS; i++) renderCell(i);
+  updateStats();
+}
+
+function loadDefault() {
+  // Load the current Royal Convoy default map
+  grid = Array(ROWS * COLS).fill('blank');
+
+  // All active squares (from the game's ACT set)
+  // P1 private: A1-A4, A14-A16
+  // P2 private: E1-E4, E14-E16
+  // Shared: everything else that's playable
+  // Let's define the map based on game logic
+
+  // Mark all as shared first for the playable region (cols 1-5, rows 1-16)
+  // but selectively assign types
+
+  // P1 privates: A col rows 1-4 and 14-16
+  var p1priv = [[1,1],[1,2],[1,3],[1,4],[1,14],[1,15],[1,16]];
+  // P2 privates: E col rows 1-4 and 14-16
+  var p2priv = [[5,1],[5,2],[5,3],[5,4],[5,14],[5,15],[5,16]];
+
+  // All board squares are playable (shared or private) — no blank squares in default
+  for (var i = 0; i < ROWS * COLS; i++) grid[i] = 'shared';
+
+  p1priv.forEach(function(c) { grid[ix(c[0],c[1])] = 'p1'; });
+  p2priv.forEach(function(c) { grid[ix(c[0],c[1])] = 'p2'; });
+
+  // Castles: C4, D9, C11
+  grid[ix(3,4)] = 'castle';
+  grid[ix(4,9)] = 'castle';
+  grid[ix(3,11)] = 'castle';
+
+  // Roll again: A3, E3, C8
+  grid[ix(1,3)] = 'reroll';
+  grid[ix(5,3)] = 'reroll';
+  grid[ix(3,8)] = 'reroll';
+
+  // Gold coins: B8, C13
+  grid[ix(2,8)] = 'gold';
+  grid[ix(3,13)] = 'gold';
+
+  // Start/finish
+  grid[ix(1,1)] = 'p1start';
+  grid[ix(5,1)] = 'p2start';
+  grid[ix(1,16)] = 'p1finish';
+  grid[ix(5,16)] = 'p2finish';
+
+  for (var j = 0; j < ROWS * COLS; j++) renderCell(j);
+  updateStats();
+}
+
+function generateCode() {
+  var out = document.getElementById('output-box');
+  out.style.display = 'block';
+
+  var shared = [], p1 = [], p2 = [], castles = [], rerolls = [], coins = [];
+  var sp1 = null, sp2 = null, dp1 = null, dp2 = null;
+
+  grid.forEach(function(t, i) {
+    var col = (i % COLS) + 1;
+    var row = Math.floor(i / COLS) + 1;
+    var c = 'ix(' + col + ',' + row + ')';
+    if (t==='shared') shared.push(c);
+    else if (t==='p1') { p1.push(c); shared.push(c); }
+    else if (t==='p2') { p2.push(c); shared.push(c); }
+    else if (t==='castle') { castles.push(c); shared.push(c); }
+    else if (t==='reroll') { rerolls.push(c); shared.push(c); }
+    else if (t==='gold') { coins.push(c); shared.push(c); }
+    else if (t==='p1start') { sp1 = c; p1.push(c); shared.push(c); }
+    else if (t==='p2start') { sp2 = c; p2.push(c); shared.push(c); }
+    else if (t==='p1finish') { dp1 = c; p1.push(c); shared.push(c); }
+    else if (t==='p2finish') { dp2 = c; p2.push(c); shared.push(c); }
+  });
+
+  var lines = [
+    '// ── MAP DEFINITION ──',
+    '// Paste these lines into the game to replace the existing map constants',
+    '',
+    'const SP1=' + (sp1||'ix(1,1)') + ', DP1=' + (dp1||'ix(1,16)') + ', SP2=' + (sp2||'ix(5,1)') + ', DP2=' + (dp2||'ix(5,16)') + ';',
+    '',
+    'const PRV1=new Set([' + p1.join(',') + ']);',
+    'const PRV2=new Set([' + p2.join(',') + ']);',
+    '',
+    'const CAS=new Set([' + castles.join(',') + ']);',
+    'const RRL=new Set([' + rerolls.join(',') + ']);',
+    'const COI=new Set([' + coins.join(',') + ']);',
+    '',
+    'const ACT=new Set([' + shared.join(',') + ']);',
+  ];
+
+  out.textContent = lines.join('\n');
+}
+
+// Init
+grid = Array(ROWS * COLS).fill('blank');
+buildGrid();
+loadDefault();
+</script>
+</body>
+</html>
